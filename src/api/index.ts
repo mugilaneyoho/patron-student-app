@@ -8,7 +8,8 @@ class Client {
   };
 
   classes = {
-    get: (classtype: string) => httpclient.get(HttpEndPoints.classes.get.replace(':classtype', classtype))
+    get: (classtype: string) => httpclient.get(HttpEndPoints.classes.get.replace(':classtype', classtype)),
+    getZoomMeeting: (classId: string) => httpclient.get(HttpEndPoints.classes.getZoomMeeting(classId))
   };
 
   dashboard = {
