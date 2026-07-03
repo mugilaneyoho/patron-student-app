@@ -3,7 +3,8 @@ export const HttpEndPoints = {
     get: '/institute/student/dashboard'
   },
   classes: {
-    get: '/training/classes/student/:classtype'
+    get: '/training/classes/student/:classtype',
+    getZoomMeeting: (classId: string) => `/openvidu/zoom/meeting/${classId}`
   },
   attendance: {
     get: '/training/attendance/student'

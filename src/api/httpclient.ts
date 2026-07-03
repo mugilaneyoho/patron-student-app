@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import { ClearLocalStorage, GetLocalStorage } from '../utils/SecureStorage';
 
 // const baseURL = Platform.OS === 'android' ? 'http://192.168.1.24:3000' : 'http://localhost:3000';
-const baseURL = Platform.OS === 'android' ? 'http://192.168.1.13:3000' : 'http://192.168.1.13:3000';
+const baseURL = Platform.OS === 'android' ? 'http://192.168.1.4:3000' : 'http://192.168.1.4:3000';
 
 
 const Axios = axios.create({

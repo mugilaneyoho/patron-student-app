@@ -14,6 +14,8 @@ import { AppDispatch, RootState } from '../store/store';
 import { GetAllClassThunks } from '../feature/classes/redux/thunks';
 import { GetLocalStorage } from '../utils/SecureStorage';
 import { Calendar, Clock, MapPin, User, Video, FileText } from 'lucide-react-native';
+import { Linking } from 'react-native';
+import { GetZoomMeetingThunk } from '../feature/classes/redux/thunks';
 
 export default function ClassesScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'Today' | 'Upcoming' | 'Completed'>('Today');
@@ -21,20 +23,42 @@ export default function ClassesScreen({ navigation }: any) {
   
   const dispatch = useDispatch<AppDispatch>();
   const classes = useSelector((state: RootState) => state.classes.data) as any[];
+  const joiningClassId = useSelector((state: RootState) => state.classes.zoomMeeting?.loadingClassId);
+  console.log("classes :", classes);
 
   useEffect(() => {
     const fetchClasses = async () => {
       setLoading(true);
+      console.log("Fetching:", activeTab);
       await dispatch(GetAllClassThunks(activeTab));
+       console.log("Classes on useeffect:", classes);
+       console.log("Active Tab:", activeTab);
       setLoading(false);
     };
     fetchClasses();
-  }, [activeTab, dispatch]);
+  }, [activeTab, dispatch]); 
 
   const handleJoinClass = async (classId: string) => {
-    const token = await GetLocalStorage('t_s_tk');
-    const resolvedUrl = `http://10.0.2.2:3000/confrence?classId=${classId}&token=${token}`;
-    navigation.navigate('WebView', { url: resolvedUrl, title: 'Video Conference' });
+    try {
+      console.log("handleJoinClass called with:", classId);
+      const res = await dispatch(GetZoomMeetingThunk(classId)).unwrap();
+      console.log("handleJoinClass unwrap res:", JSON.stringify(res));
+      
+      const urlToOpen = res?.startURL || res?.joinUrl || res?.meetingUrl || res?.data?.startURL || res?.data?.joinUrl || res?.data?.meetingUrl || res?.data;
+      
+      if (urlToOpen && typeof urlToOpen === 'string' && urlToOpen.startsWith('http')) {
+        try {
+          await Linking.openURL(urlToOpen);
+        } catch (error) {
+          Alert.alert("Error", "Unable to open meeting link");
+        }
+      } else {
+        Alert.alert("Error", `Received invalid link format. Response: ${JSON.stringify(res)}`);
+      }
+    } catch (error) {
+      console.error("handleJoinClass error:", error);
+      Alert.alert("Error", typeof error === 'string' ? error : "Unable to fetch meeting link, please try again");
+    }
   };
 
   const formatDate = (date: string) => {
@@ -135,9 +159,14 @@ export default function ClassesScreen({ navigation }: any) {
                 {activeTab === 'Today' && item.class_mode === 'online' && (
                   <TouchableOpacity
                     style={styles.actionButton}
-                    onPress={() => handleJoinClass(item.uuid)}
+                    onPress={() => handleJoinClass(item.uuid || item.id)}
+                    disabled={joiningClassId === (item.uuid || item.id)}
                   >
-                    <Text style={styles.actionButtonText}>Join Online Class</Text>
+                    {joiningClassId === (item.uuid || item.id) ? (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    ) : (
+                      <Text style={styles.actionButtonText}>Join Online Class</Text>
+                    )}
                   </TouchableOpacity>
                 )}
 
