@@ -12,6 +12,7 @@ export const HttpEndPoints = {
   student: {
     login: '/auth/students/login',
     resetpass: '/auth/students/reset-pass',
+    updateLocation: (uuid: string) => `/institute/student/${uuid}`
   },
   fees: {
     getAll: (uuid: string) => `/institute/student/${uuid}/fees`

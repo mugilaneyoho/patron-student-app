@@ -4,7 +4,8 @@ import httpclient from './httpclient';
 class Client {
   student = {
     login: (data: { email: string; password: string }) => httpclient.post(HttpEndPoints.student.login, data),
-    restpass: (data: { password: string; token: string }) => httpclient.put(HttpEndPoints.student.resetpass, data)
+    restpass: (data: { password: string; token: string }) => httpclient.put(HttpEndPoints.student.resetpass, data),
+    updateLocation: (uuid: string, locations: string[]) => httpclient.patch(HttpEndPoints.student.updateLocation(uuid), { locations })
   };
 
   classes = {

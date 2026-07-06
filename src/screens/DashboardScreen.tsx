@@ -37,11 +37,9 @@ import {
   GraduationCap
 } from 'lucide-react-native';
 
-const STUDENT_UUID_PROFILE = '63695211-33dd-11f1-b86c-825f1ffce71f';
-
 export default function DashboardScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
-  const { logout } = useAuth();
+  const { logout, studentUuid } = useAuth();
 
   // Redux Selectors
   const dashboard = useSelector((state: RootState) => state.dashboard.data) as any;
@@ -54,19 +52,22 @@ export default function DashboardScreen({ navigation }: any) {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const loadData = async () => {
+    if (!studentUuid) return;
     setIsRefreshing(true);
     await Promise.all([
       dispatch(DashBoardThunks()),
       dispatch(GetAllClassThunks('today')),
       dispatch(GetNotificationThunks()),
-      dispatch(getProfileThunk(STUDENT_UUID_PROFILE))
+      dispatch(getProfileThunk(studentUuid))
     ]);
     setIsRefreshing(false);
   };
 
   useEffect(() => {
-    loadData();
-  }, [dispatch]);
+    if (studentUuid) {
+      loadData();
+    }
+  }, [dispatch, studentUuid]);
 
   const handleJoinClass = async (classId: string) => {
     const token = await GetLocalStorage('t_s_tk');
@@ -96,7 +97,7 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.header}>
           <View>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.nameText}>{profile?.name || 'Student'}</Text>
+            <Text style={styles.nameText}>{profile?.student_name || 'Student'}</Text>
           </View>
           <TouchableOpacity
             style={styles.avatarButton}
@@ -285,14 +286,14 @@ export default function DashboardScreen({ navigation }: any) {
                   source={require('../assets/profile.png')}
                   style={styles.profileAvatar as any}
                 />
-                <Text style={styles.profileName}>{profile?.name || 'N/A'}</Text>
+                <Text style={styles.profileName}>{profile?.student_name || 'N/A'}</Text>
                 <Text style={styles.profileEmail}>{profile?.email || 'N/A'}</Text>
               </View>
 
               <View style={styles.profileDetailsList}>
                 <View style={styles.profileDetailRow}>
                   <Phone size={16} color="#64748b" />
-                  <Text style={styles.profileDetailVal}>{profile?.phone || 'N/A'}</Text>
+                  <Text style={styles.profileDetailVal}>{profile?.phone_number || 'N/A'}</Text>
                 </View>
                 <View style={styles.profileDetailRow}>
                   <GraduationCap size={16} color="#64748b" />
@@ -301,7 +302,7 @@ export default function DashboardScreen({ navigation }: any) {
                 <View style={styles.profileDetailRow}>
                   <MapPin size={16} color="#64748b" />
                   <Text style={styles.profileDetailVal}>
-                    {profile?.address ? `${profile.address}, ${profile.city || ''}` : 'N/A'}
+                    {profile?.currentAddress ? `${profile.currentAddress}${profile.permantAddress ? `, ${profile.permantAddress}` : ''}` : 'N/A'}
                   </Text>
                 </View>
               </View>

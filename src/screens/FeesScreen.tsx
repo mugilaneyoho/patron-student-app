@@ -13,11 +13,11 @@ import {
 import { feeService } from '../features/services/index';
 import client from '../api/index';
 import { IndianRupee, CreditCard, Smartphone, Building2, CheckCircle2, X } from 'lucide-react-native';
+import { useAuth } from '../contexts/AuthUseContext';
 import type { Payment } from '../types/feeInterface';
 
-const STUDENT_UUID_FEES = '03e86acf-105b-4e0c-a36e-27a9bfb24ff1';
-
 export default function FeesScreen() {
+  const { studentUuid } = useAuth();
   const [totalFees, setTotalFees] = useState(0);
   const [paidAmount, setPaidAmount] = useState(0);
   const [pendingAmount, setPendingAmount] = useState(0);
@@ -29,8 +29,9 @@ export default function FeesScreen() {
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
   const fetchFeesData = async () => {
+    if (!studentUuid) return;
     try {
-      const data = await feeService(STUDENT_UUID_FEES);
+      const data = await feeService(studentUuid);
       if (data) {
         setTotalFees(data.total_fees || 0);
         setPaidAmount(data.paid_amount || 0);
@@ -47,8 +48,10 @@ export default function FeesScreen() {
   };
 
   useEffect(() => {
-    fetchFeesData();
-  }, []);
+    if (studentUuid) {
+      fetchFeesData();
+    }
+  }, [studentUuid]);
 
   const handleSimulatePayment = async (method: string) => {
     setPaymentProcessing(true);
