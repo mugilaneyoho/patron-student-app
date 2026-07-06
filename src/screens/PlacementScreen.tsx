@@ -35,6 +35,13 @@ import {
 } from "../feature/placements/reducers/placementsSelectors";
 import { clearSelectedInvite } from "../feature/placements/reducers/placementSlice";
 import type { PlacementInvite } from "../feature/placements/reducers/types";
+import { selectprofile } from "../feature/profile/reducer/selector";
+import {
+  getProfileThunk,
+  updateStudentLocationThunk,
+} from "../feature/profile/reducer/thunk";
+import Client from "../api/index";
+import { useAuth } from "../contexts/AuthUseContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -50,44 +57,434 @@ export default function PlacementScreen() {
   const updateLoading = useSelector(selectUpdateLoading);
 
   // ── Airport tier data ──────────────────────────────────────────────────
+  interface AirportOption {
+    code: string;
+    name: string;
+    city: string;
+    state: string;
+    type: "Major" | "Minor";
+  }
+
+  const airportsData: AirportOption[] = [
+    {
+      code: "DEL",
+      name: "Indira Gandhi International Airport",
+      city: "New Delhi",
+      state: "Delhi",
+      type: "Major",
+    },
+    {
+      code: "BOM",
+      name: "Chhatrapati Shivaji Maharaj International Airport",
+      city: "Mumbai",
+      state: "Maharashtra",
+      type: "Major",
+    },
+    {
+      code: "BLR",
+      name: "Kempegowda International Airport",
+      city: "Bengaluru",
+      state: "Karnataka",
+      type: "Major",
+    },
+    {
+      code: "MAA",
+      name: "Chennai International Airport",
+      city: "Chennai",
+      state: "Tamil Nadu",
+      type: "Major",
+    },
+    {
+      code: "HYD",
+      name: "Rajiv Gandhi International Airport",
+      city: "Hyderabad",
+      state: "Telangana",
+      type: "Major",
+    },
+    {
+      code: "CCU",
+      name: "Netaji Subhas Chandra Bose International Airport",
+      city: "Kolkata",
+      state: "West Bengal",
+      type: "Major",
+    },
+    {
+      code: "AMD",
+      name: "Sardar Vallabhbhai Patel International Airport",
+      city: "Ahmedabad",
+      state: "Gujarat",
+      type: "Major",
+    },
+    {
+      code: "PNQ",
+      name: "Pune Airport",
+      city: "Pune",
+      state: "Maharashtra",
+      type: "Major",
+    },
+    {
+      code: "GOI",
+      name: "Goa International Airport (Dabolim)",
+      city: "Goa",
+      state: "Goa",
+      type: "Major",
+    },
+    {
+      code: "GOX",
+      name: "Manohar International Airport (Mopa)",
+      city: "Goa",
+      state: "Goa",
+      type: "Major",
+    },
+    {
+      code: "COK",
+      name: "Cochin International Airport",
+      city: "Kochi",
+      state: "Kerala",
+      type: "Major",
+    },
+    {
+      code: "TRV",
+      name: "Trivandrum International Airport",
+      city: "Thiruvananthapuram",
+      state: "Kerala",
+      type: "Major",
+    },
+    {
+      code: "CJB",
+      name: "Coimbatore International Airport",
+      city: "Coimbatore",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "IXM",
+      name: "Madurai Airport",
+      city: "Madurai",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "TRZ",
+      name: "Tiruchirappalli International Airport",
+      city: "Tiruchirappalli",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "TIR",
+      name: "Tirupati Airport",
+      city: "Tirupati",
+      state: "Andhra Pradesh",
+      type: "Minor",
+    },
+    {
+      code: "SXV",
+      name: "Salem Airport",
+      city: "Salem",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "TCR",
+      name: "Tuticorin Airport",
+      city: "Tuticorin",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "NVY",
+      name: "Neyveli Airport",
+      city: "Neyveli",
+      state: "Tamil Nadu",
+      type: "Minor",
+    },
+    {
+      code: "VGA",
+      name: "Vijayawada Airport",
+      city: "Vijayawada",
+      state: "Andhra Pradesh",
+      type: "Minor",
+    },
+    {
+      code: "VTZ",
+      name: "Visakhapatnam Airport",
+      city: "Visakhapatnam",
+      state: "Andhra Pradesh",
+      type: "Major",
+    },
+    {
+      code: "JAI",
+      name: "Jaipur International Airport",
+      city: "Jaipur",
+      state: "Rajasthan",
+      type: "Major",
+    },
+    {
+      code: "JDH",
+      name: "Jodhpur Airport",
+      city: "Jodhpur",
+      state: "Rajasthan",
+      type: "Minor",
+    },
+    {
+      code: "UDR",
+      name: "Maharana Pratap Airport",
+      city: "Udaipur",
+      state: "Rajasthan",
+      type: "Minor",
+    },
+    {
+      code: "LKO",
+      name: "Chaudhary Charan Singh International Airport",
+      city: "Lucknow",
+      state: "Uttar Pradesh",
+      type: "Major",
+    },
+    {
+      code: "VNS",
+      name: "Lal Bahadur Shastri International Airport",
+      city: "Varanasi",
+      state: "Uttar Pradesh",
+      type: "Major",
+    },
+    {
+      code: "PAT",
+      name: "Jay Prakash Narayan International Airport",
+      city: "Patna",
+      state: "Bihar",
+      type: "Major",
+    },
+    {
+      code: "BHO",
+      name: "Raja Bhoj Airport",
+      city: "Bhopal",
+      state: "Madhya Pradesh",
+      type: "Minor",
+    },
+    {
+      code: "IDR",
+      name: "Devi Ahilyabai Holkar Airport",
+      city: "Indore",
+      state: "Madhya Pradesh",
+      type: "Minor",
+    },
+    {
+      code: "NAG",
+      name: "Dr. Babasaheb Ambedkar International Airport",
+      city: "Nagpur",
+      state: "Maharashtra",
+      type: "Minor",
+    },
+    {
+      code: "STV",
+      name: "Surat Airport",
+      city: "Surat",
+      state: "Gujarat",
+      type: "Minor",
+    },
+    {
+      code: "GAU",
+      name: "Lokpriya Gopinath Bordoloi International Airport",
+      city: "Guwahati",
+      state: "Assam",
+      type: "Major",
+    },
+    {
+      code: "BBI",
+      name: "Biju Patnaik International Airport",
+      city: "Bhubaneswar",
+      state: "Odisha",
+      type: "Major",
+    },
+    {
+      code: "ATQ",
+      name: "Sri Guru Ram Dass Jee International Airport",
+      city: "Amritsar",
+      state: "Punjab",
+      type: "Major",
+    },
+    {
+      code: "IXC",
+      name: "Chandigarh International Airport",
+      city: "Chandigarh",
+      state: "Chandigarh",
+      type: "Major",
+    },
+    {
+      code: "DED",
+      name: "Jolly Grant Airport",
+      city: "Dehradun",
+      state: "Uttarakhand",
+      type: "Minor",
+    },
+    {
+      code: "IXR",
+      name: "Birsa Munda Airport",
+      city: "Ranchi",
+      state: "Jharkhand",
+      type: "Minor",
+    },
+    {
+      code: "RPR",
+      name: "Swami Vivekananda Airport",
+      city: "Raipur",
+      state: "Chhattisgarh",
+      type: "Minor",
+    },
+    {
+      code: "SXR",
+      name: "Sheikh ul-Alam International Airport",
+      city: "Srinagar",
+      state: "Jammu and Kashmir",
+      type: "Major",
+    },
+    {
+      code: "IXJ",
+      name: "Jammu Airport",
+      city: "Jammu",
+      state: "Jammu and Kashmir",
+      type: "Minor",
+    },
+    {
+      code: "IXL",
+      name: "Kushok Bakula Rimpochee Airport",
+      city: "Leh",
+      state: "Ladakh",
+      type: "Minor",
+    },
+    {
+      code: "IXA",
+      name: "Agartala Airport",
+      city: "Agartala",
+      state: "Tripura",
+      type: "Minor",
+    },
+    {
+      code: "IMF",
+      name: "Imphal Airport",
+      city: "Imphal",
+      state: "Manipur",
+      type: "Minor",
+    },
+    {
+      code: "SHL",
+      name: "Shillong Airport",
+      city: "Shillong",
+      state: "Meghalaya",
+      type: "Minor",
+    },
+    {
+      code: "AJL",
+      name: "Lengpui Airport",
+      city: "Aizawl",
+      state: "Mizoram",
+      type: "Minor",
+    },
+    {
+      code: "DMU",
+      name: "Dimapur Airport",
+      city: "Kohima",
+      state: "Nagaland",
+      type: "Minor",
+    },
+    {
+      code: "IXI",
+      name: "Itanagar Airport (Donyi Polo)",
+      city: "Itanagar",
+      state: "Arunachal Pradesh",
+      type: "Minor",
+    },
+    {
+      code: "PYG",
+      name: "Pakyong Airport",
+      city: "Gangtok",
+      state: "Sikkim",
+      type: "Minor",
+    },
+    {
+      code: "IXZ",
+      name: "Veer Savarkar International Airport",
+      city: "Port Blair",
+      state: "Andaman and Nicobar Islands",
+      type: "Minor",
+    },
+    {
+      code: "PNY",
+      name: "Puducherry Airport",
+      city: "Puducherry",
+      state: "Puducherry",
+      type: "Minor",
+    },
+    {
+      code: "IXE",
+      name: "Mangaluru International Airport",
+      city: "Mangaluru",
+      state: "Karnataka",
+      type: "Minor",
+    },
+    {
+      code: "HBX",
+      name: "Hubballi Airport",
+      city: "Hubballi",
+      state: "Karnataka",
+      type: "Minor",
+    },
+    {
+      code: "IXG",
+      name: "Belagavi Airport",
+      city: "Belagavi",
+      state: "Karnataka",
+      type: "Minor",
+    },
+  ];
+
+  const tier1Codes = ["DEL", "BOM", "BLR", "MAA", "HYD", "CCU"];
+
   const airportTiers = {
-    tier1: [
-      { city: "Chennai", state: "Tamil Nadu" },
-      { city: "Bengaluru", state: "Karnataka" },
-      { city: "Hyderabad", state: "Telangana" },
-      { city: "Mumbai", state: "Maharashtra" },
-    ],
-    tier2: [
-      { city: "Coimbatore", state: "Tamil Nadu" },
-      { city: "Mysuru", state: "Karnataka" },
-      { city: "Warangal", state: "Telangana" },
-      { city: "Pune", state: "Maharashtra" },
-    ],
-    tier3: [
-      { city: "Madurai", state: "Tamil Nadu" },
-      { city: "Hubballi", state: "Karnataka" },
-      { city: "Nizamabad", state: "Telangana" },
-      { city: "Nagpur", state: "Maharashtra" },
-    ],
+    tier1: airportsData.filter((a) => tier1Codes.includes(a.code)),
+    tier2: airportsData.filter(
+      (a) => a.type === "Major" && !tier1Codes.includes(a.code),
+    ),
+    tier3: airportsData.filter((a) => a.type === "Minor"),
   };
 
   // ── Local state ────────────────────────────────────────────────────────
-  const [tier1, setTier1] = useState<{ city: string; state: string } | null>(
-    null,
-  );
-  const [tier2, setTier2] = useState<{ city: string; state: string } | null>(
-    null,
-  );
-  const [tier3, setTier3] = useState<{ city: string; state: string } | null>(
-    null,
-  );
-  const [savingPrefs, setSavingPrefs] = useState(false);
+  const { studentUuid } = useAuth();
+  const studentProfile = useSelector(selectprofile) as any;
+  console.log("student",studentProfile)
 
-  // Filter tier3: if tier1 and tier2 are from same state, exclude that state from tier3
-  const tier3Options =
-    tier1 && tier2 && tier1.state === tier2.state
-      ? airportTiers.tier3.filter((a) => a.state !== tier1.state)
-      : airportTiers.tier3;
+  const [tier1, setTier1] = useState<AirportOption | null>(null);
+  const [tier2, setTier2] = useState<AirportOption | null>(null);
+  const [tier3, setTier3] = useState<AirportOption | null>(null);
+  const [savingPrefs, setSavingPrefs] = useState(false);
+  const [activePicker, setActivePicker] = useState<
+    "tier1" | "tier2" | "tier3" | null
+  >(null);
+
+  // Filter conditions for state exclusion
+  const selectedT1 = airportsData.find((a) => a.city === tier1?.city) || null;
+  const selectedT2 = airportsData.find((a) => a.city === tier2?.city) || null;
+  const selectedT3 = airportsData.find((a) => a.city === tier3?.city) || null;
+
+  const isTier1AndTier2SameState =
+    selectedT1 && selectedT2 && selectedT1.state === selectedT2.state;
+  const isTier1AndTier3SameState =
+    selectedT1 && selectedT3 && selectedT1.state === selectedT3.state;
+  const isTier2AndTier3SameState =
+    selectedT2 && selectedT3 && selectedT2.state === selectedT3.state;
+
+  const tier1Options = isTier2AndTier3SameState
+    ? airportTiers.tier1.filter((a) => a.state !== selectedT2.state)
+    : airportTiers.tier1;
+
+  const tier2Options = isTier1AndTier3SameState
+    ? airportTiers.tier2.filter((a) => a.state !== selectedT1.state)
+    : airportTiers.tier2;
+
+  const tier3Options = isTier1AndTier2SameState
+    ? airportTiers.tier3.filter((a) => a.state !== selectedT1.state)
+    : airportTiers.tier3;
 
   const selectedCities = [tier1?.city, tier2?.city, tier3?.city].filter(
     Boolean,
@@ -107,7 +504,38 @@ export default function PlacementScreen() {
   // ── Fetch on mount ─────────────────────────────────────────────────────
   useEffect(() => {
     dispatch(getAllInvitesThunk());
-  }, [dispatch]);
+    if (studentUuid) {
+      dispatch(getProfileThunk(studentUuid));
+    }
+  }, [dispatch, studentUuid]);
+
+  // Load saved preferences from profile
+  useEffect(() => {
+    if (
+      studentProfile?.preferredLocations &&
+      studentProfile.preferredLocations.length > 0
+    ) {
+      const locs = studentProfile.preferredLocations;
+      if (locs[0]) {
+        const found = airportsData.find((a) => a.city === locs[0]) || null;
+        setTier1(found);
+      } else {
+        setTier1(null);
+      }
+      if (locs[1]) {
+        const found = airportsData.find((a) => a.city === locs[1]) || null;
+        setTier2(found);
+      } else {
+        setTier2(null);
+      }
+      if (locs[2]) {
+        const found = airportsData.find((a) => a.city === locs[2]) || null;
+        setTier3(found);
+      } else {
+        setTier3(null);
+      }
+    }
+  }, [studentProfile]);
 
   // ── Handlers ───────────────────────────────────────────────────────────
   const handleAccept = (invite: PlacementInvite) => {
@@ -149,7 +577,7 @@ export default function PlacementScreen() {
     dispatch(getInviteByIdThunk(id));
   };
 
-  const handleSavePreferences = () => {
+  const handleSavePreferences = async () => {
     if (selectedCities.length === 0) {
       Alert.alert(
         "Validation Error",
@@ -158,13 +586,42 @@ export default function PlacementScreen() {
       return;
     }
     setSavingPrefs(true);
-    setTimeout(() => {
-      setSavingPrefs(false);
-      Alert.alert(
-        "Preferences Saved",
-        `Saved cities: ${selectedCities.join(", ")}`,
+    try {
+      if (!studentUuid) {
+        Alert.alert("Error", "User not logged in.");
+        return;
+      }
+      const res = await dispatch(
+        updateStudentLocationThunk(studentUuid, selectedCities),
       );
-    }, 1200);
+      if (res && res.success) {
+        Alert.alert(
+          "Preferences Saved",
+          `Saved cities: ${selectedCities.join(", ")}`,
+        );
+      } else {
+        Alert.alert("Error", "Failed to save preferences. Please try again.");
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to save preferences. Please try again.");
+    } finally {
+      setSavingPrefs(false);
+    }
+  };
+
+  const getOptionsForActivePicker = () => {
+    if (activePicker === "tier1") return tier1Options;
+    if (activePicker === "tier2") return tier2Options;
+    if (activePicker === "tier3") return tier3Options;
+    return [];
+  };
+
+  const handleSelectAirport = (airport: AirportOption) => {
+    if (activePicker === "tier1") setTier1(airport);
+    if (activePicker === "tier2") setTier2(airport);
+    if (activePicker === "tier3") setTier3(airport);
+    setActivePicker(null);
   };
 
   // ── Helpers ────────────────────────────────────────────────────────────
@@ -228,83 +685,47 @@ export default function PlacementScreen() {
           Select your preferred airport cities by tier.
         </Text>
 
-        {/* Tier 1 */}
+        {/* Tier 1 Select trigger */}
         <Text style={styles.inputLabel}>Tier 1 City</Text>
-        <View style={styles.tierRow}>
-          {airportTiers.tier1.map((airport) => (
-            <TouchableOpacity
-              key={airport.city}
-              style={[
-                styles.tierBtn,
-                tier1?.city === airport.city && styles.tierBtnActive,
-              ]}
-              onPress={() =>
-                setTier1(tier1?.city === airport.city ? null : airport)
-              }
-            >
-              <Text
-                style={[
-                  styles.tierBtnText,
-                  tier1?.city === airport.city && styles.tierBtnTextActive,
-                ]}
-              >
-                {airport.city}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity
+          style={styles.dropdownTrigger}
+          onPress={() => setActivePicker("tier1")}
+        >
+          <Text
+            style={tier1 ? styles.dropdownValue : styles.dropdownPlaceholder}
+          >
+            {tier1 ? `${tier1.city} (${tier1.code})` : "Select Tier 1 Airport"}
+          </Text>
+          <ChevronRight size={18} color="#64748b" />
+        </TouchableOpacity>
 
-        {/* Tier 2 */}
+        {/* Tier 2 Select trigger */}
         <Text style={[styles.inputLabel, { marginTop: 14 }]}>Tier 2 City</Text>
-        <View style={styles.tierRow}>
-          {airportTiers.tier2.map((airport) => (
-            <TouchableOpacity
-              key={airport.city}
-              style={[
-                styles.tierBtn,
-                tier2?.city === airport.city && styles.tierBtnActive,
-              ]}
-              onPress={() =>
-                setTier2(tier2?.city === airport.city ? null : airport)
-              }
-            >
-              <Text
-                style={[
-                  styles.tierBtnText,
-                  tier2?.city === airport.city && styles.tierBtnTextActive,
-                ]}
-              >
-                {airport.city}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity
+          style={styles.dropdownTrigger}
+          onPress={() => setActivePicker("tier2")}
+        >
+          <Text
+            style={tier2 ? styles.dropdownValue : styles.dropdownPlaceholder}
+          >
+            {tier2 ? `${tier2.city} (${tier2.code})` : "Select Tier 2 Airport"}
+          </Text>
+          <ChevronRight size={18} color="#64748b" />
+        </TouchableOpacity>
 
-        {/* Tier 3 */}
+        {/* Tier 3 Select trigger */}
         <Text style={[styles.inputLabel, { marginTop: 14 }]}>Tier 3 City</Text>
-        <View style={styles.tierRow}>
-          {tier3Options.map((airport) => (
-            <TouchableOpacity
-              key={airport.city}
-              style={[
-                styles.tierBtn,
-                tier3?.city === airport.city && styles.tierBtnActive,
-              ]}
-              onPress={() =>
-                setTier3(tier3?.city === airport.city ? null : airport)
-              }
-            >
-              <Text
-                style={[
-                  styles.tierBtnText,
-                  tier3?.city === airport.city && styles.tierBtnTextActive,
-                ]}
-              >
-                {airport.city}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <TouchableOpacity
+          style={styles.dropdownTrigger}
+          onPress={() => setActivePicker("tier3")}
+        >
+          <Text
+            style={tier3 ? styles.dropdownValue : styles.dropdownPlaceholder}
+          >
+            {tier3 ? `${tier3.city} (${tier3.code})` : "Select Tier 3 Airport"}
+          </Text>
+          <ChevronRight size={18} color="#64748b" />
+        </TouchableOpacity>
 
         {/* Selected cities */}
         {selectedCities.length > 0 && (
@@ -491,6 +912,59 @@ export default function PlacementScreen() {
           <Text style={styles.emptyText}>No invitation history yet.</Text>
         </View>
       )}
+
+      {/* ── AIRPORT SELECT MODAL ─────────────────────────────────────── */}
+      <Modal
+        visible={activePicker !== null}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setActivePicker(null)}
+      >
+        <View style={styles.pickerModalOverlay}>
+          <View style={styles.pickerModalContent}>
+            <View style={styles.pickerModalHeader}>
+              <Text style={styles.pickerModalTitle}>
+                Select Preferred{" "}
+                {activePicker === "tier1"
+                  ? "Tier 1"
+                  : activePicker === "tier2"
+                    ? "Tier 2"
+                    : "Tier 3"}{" "}
+                Airport
+              </Text>
+              <TouchableOpacity onPress={() => setActivePicker(null)}>
+                <XCircle size={22} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView contentContainerStyle={styles.pickerModalScroll}>
+              <TouchableOpacity
+                style={styles.pickerOptionItem}
+                onPress={() => {
+                  if (activePicker === "tier1") setTier1(null);
+                  if (activePicker === "tier2") setTier2(null);
+                  if (activePicker === "tier3") setTier3(null);
+                  setActivePicker(null);
+                }}
+              >
+                <Text style={[styles.pickerOptionText, { color: "#dc2626" }]}>
+                  Clear Selection (None)
+                </Text>
+              </TouchableOpacity>
+              {getOptionsForActivePicker().map((airport) => (
+                <TouchableOpacity
+                  key={airport.code}
+                  style={styles.pickerOptionItem}
+                  onPress={() => handleSelectAirport(airport)}
+                >
+                  <Text style={styles.pickerOptionText}>
+                    {airport.city} ({airport.state}) - {airport.code}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
 
       {/* ── DECLINE REASON MODAL ──────────────────────────────────────── */}
       <Modal
@@ -1075,4 +1549,34 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   primaryActionText: { color: "#ffffff", fontSize: 13, fontWeight: "700" },
+  dropdownPlaceholder: { fontSize: 14, color: "#94a3b8", fontWeight: "500" },
+  pickerModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    justifyContent: "flex-end",
+  },
+  pickerModalContent: {
+    backgroundColor: "#ffffff",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: "60%",
+    paddingBottom: 24,
+  },
+  pickerModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f5f9",
+  },
+  pickerModalTitle: { fontSize: 16, fontWeight: "800", color: "#0f172a" },
+  pickerModalScroll: { paddingVertical: 10 },
+  pickerOptionItem: {
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f8fafc",
+  },
+  pickerOptionText: { fontSize: 14, color: "#334155", fontWeight: "600" },
 });
