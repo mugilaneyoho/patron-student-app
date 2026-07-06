@@ -147,27 +147,27 @@ function TabNavigator() {
 }
 
 export default function AppNavigation() {
-  const { isAuthenticated, isLoading } = useAuth();
+  // const { isAuthenticated, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#f8fafc",
-        }}
-      >
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <View
+  //       style={{
+  //         flex: 1,
+  //         justifyContent: "center",
+  //         alignItems: "center",
+  //         backgroundColor: "#f8fafc",
+  //       }}
+  //     >
+  //       <ActivityIndicator size="large" color="#2563eb" />
+  //     </View>
+  //   );
+  // }
 
   return (
     <View style={{ flex: 1 }}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {isAuthenticated ? (
+        {/* {isAuthenticated ? (
           <>
             <Stack.Screen name="Main" component={TabNavigator} />
             <Stack.Screen
@@ -217,7 +217,55 @@ export default function AppNavigation() {
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
-        )}
+        )} */}
+
+        <>
+  <Stack.Screen name="Main" component={TabNavigator} />
+  <Stack.Screen
+    name="WebView"
+    component={WebViewScreen}
+    options={{
+      headerShown: true,
+      title: "Web View",
+      headerStyle: { backgroundColor: "#2563eb" },
+      headerTintColor: "#ffffff",
+      headerTitleStyle: { fontWeight: "bold" },
+    }}
+  />
+  <Stack.Screen
+    name="Profile"
+    component={ProfileScreen}
+    options={{
+      headerShown: true,
+      title: "Student Profile",
+      headerStyle: { backgroundColor: "#2563eb" },
+      headerTintColor: "#ffffff",
+      headerTitleStyle: { fontWeight: "bold" },
+    }}
+  />
+  <Stack.Screen
+    name="Placement"
+    component={PlacementScreen}
+    options={{
+      headerShown: true,
+      title: "Placement Hub",
+      headerStyle: { backgroundColor: "#2563eb" },
+      headerTintColor: "#ffffff",
+      headerTitleStyle: { fontWeight: "bold" },
+    }}
+  />
+  <Stack.Screen
+    name="Notification"
+    component={NotificationScreen}
+    options={{
+      headerShown: true,
+      title: "Notifications",
+      headerStyle: { backgroundColor: "#2563eb" },
+      headerTintColor: "#ffffff",
+      headerTitleStyle: { fontWeight: "bold" },
+    }}
+  />
+</>
       </Stack.Navigator>
       <InAppNotificationListener />
     </View>

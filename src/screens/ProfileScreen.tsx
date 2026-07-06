@@ -86,8 +86,11 @@ export default function ProfileScreen({ navigation }: any) {
         email: profile?.email // keep existing email
       };
       
+     
       await dispatch(updateProfileThunk(STUDENT_UUID_PROFILE, updateData));
+      
       setIsEditing(false);
+     
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
       console.error(error);
@@ -110,8 +113,10 @@ export default function ProfileScreen({ navigation }: any) {
 
   const handleSignOut = () => {
     Alert.alert(
+    
       'Sign Out',
       'Are you sure you want to sign out?',
+     
       [
         { text: 'Cancel', style: 'cancel' },
         { text: 'Sign Out', style: 'destructive', onPress: () => logout() }
@@ -121,6 +126,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   if (!profile) {
     return (
+      
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#2563eb" />
         <Text style={styles.loadingText}>Loading Profile...</Text>
@@ -329,12 +335,14 @@ export default function ProfileScreen({ navigation }: any) {
 
 const styles = StyleSheet.create({
   loadingContainer: {
+   
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f8fafc'
   },
   loadingText: {
+   
     marginTop: 10,
     color: '#64748b',
     fontSize: 14,
