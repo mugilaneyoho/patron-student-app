@@ -1,4 +1,6 @@
+import CryptoJS from 'crypto-js';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const secretKey='a8sd98f7a9s8df7as9df';
 
 export const decodeBase64 = (input: string): string => {
   const str = input.replace(/=+$/, '');
@@ -33,3 +35,8 @@ export const decodeJWT = (token: string): any => {
     return null;
   }
 };
+
+export const PassEncrypted = (data:object) => {
+    const encrypt = CryptoJS.AES.encrypt(JSON.stringify(data),secretKey).toString()
+    return encrypt;
+}

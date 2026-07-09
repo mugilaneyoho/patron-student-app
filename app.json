@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "mobile",
-    "slug": "mobile",
+    "name": "patron connect",
+    "slug": "patron-connect",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -9,7 +9,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "LSApplicationQueriesSchemes": ["zoomus"]
+        "LSApplicationQueriesSchemes": [
+          "zoomus"
+        ]
       }
     },
     "android": {
@@ -30,10 +32,17 @@
             }
           ]
         }
-      ]
+      ],
+      "usesCleartextTraffic": true,
+      "package": "com.mernstackdeveloper.mobile"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "c3f04853-6831-47dd-a17b-6650a299915e"
+      }
     }
   }
 }
