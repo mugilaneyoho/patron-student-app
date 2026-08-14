@@ -10,6 +10,7 @@ import {
   Alert,
   Modal,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import {
   Briefcase,
   Clock,
@@ -660,10 +661,11 @@ export default function PlacementScreen() {
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-    >
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+      >
       {/* Header */}
       <View style={styles.headerBanner}>
         <View style={styles.headerTitleRow}>
@@ -1152,11 +1154,13 @@ export default function PlacementScreen() {
         </View>
       </Modal>
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 // ── STYLES ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#f8fafc" },
   container: { flex: 1, backgroundColor: "#f8fafc" },
   contentContainer: { padding: 16, paddingBottom: 40 },
   headerBanner: {

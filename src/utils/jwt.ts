@@ -1,3 +1,4 @@
+import "react-native-get-random-values"
 import CryptoJS from 'crypto-js';
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const secretKey='a8sd98f7a9s8df7as9df';

@@ -2,7 +2,14 @@ import React from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { useAuth } from "../contexts/AuthUseContext";
-import { ActivityIndicator, View, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Import Screens
 import LoginScreen from "../screens/LoginScreen";
@@ -16,6 +23,7 @@ import PlacementScreen from "../screens/PlacementScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import NotificationScreen from "../screens/NotificationScreen";
 import InAppNotificationListener from "../components/InAppNotificationListener";
+import { FullScreenLoader } from "../components/FlightLoader";
 
 // Icons
 import {
@@ -27,6 +35,7 @@ import {
   Briefcase,
   User,
   Bell,
+  ArrowLeft,
 } from "lucide-react-native";
 
 export type RootStackParamList = {
@@ -49,49 +58,114 @@ export type TabParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator<TabParamList>();
 
+// ─── Custom Top Header ─────────────────────────────────────────────────────────
+function AppHeader({ navigation }: { navigation: any }) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={[
+        styles.headerOuter,
+        { paddingTop: insets.top + 8, paddingBottom: 12 },
+      ]}
+    >
+      {/* Left — Logo + Brand name */}
+      <View style={styles.headerLeft}>
+        <View style={styles.logoBox}>
+          <Text style={styles.logoEmoji}>✈</Text>
+        </View>
+        <View>
+          <Text style={styles.brandName}>Patron</Text>
+          <Text style={styles.brandTagline}>Student Portal</Text>
+        </View>
+      </View>
+
+      {/* Right — Action Icons */}
+      <View style={styles.headerRight}>
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          onPress={() => navigation.navigate("Notification")}
+          activeOpacity={0.75}
+        >
+          <Bell color="#ffffff" size={20} strokeWidth={2.2} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.headerIconBtn}
+          onPress={() => navigation.navigate("Placement")}
+          activeOpacity={0.75}
+        >
+          <Briefcase color="#ffffff" size={20} strokeWidth={2.2} />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.headerIconBtn, styles.headerIconBtnLast]}
+          onPress={() => navigation.navigate("Profile")}
+          activeOpacity={0.75}
+        >
+          <User color="#ffffff" size={20} strokeWidth={2.2} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+// ─── Custom Stack Header (with Back Button & Safe Area Top Space) ────────────
+function CustomStackHeader({
+  title,
+  navigation,
+}: {
+  title: string;
+  navigation: any;
+}) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View
+      style={[
+        styles.stackHeaderOuter,
+        { paddingTop: insets.top + 8, paddingBottom: 12 },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.backBtn}
+        onPress={() => navigation.goBack()}
+        activeOpacity={0.75}
+      >
+        <ArrowLeft color="#ffffff" size={20} strokeWidth={2.2} />
+      </TouchableOpacity>
+      <Text style={styles.stackHeaderTitle}>{title}</Text>
+    </View>
+  );
+}
+
+// ─── Tab Navigator ─────────────────────────────────────────────────────────────
 function TabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ navigation }) => ({
-        tabBarActiveTintColor: "#2563eb", // primary blue
-        tabBarInactiveTintColor: "#94a3b8", // slate 400
+        tabBarActiveTintColor: "#2563eb",
+        tabBarInactiveTintColor: "#94a3b8",
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: "#f1f5f9",
           backgroundColor: "#ffffff",
-          height: 60,
-          paddingBottom: 8,
+          height: Platform.OS === "ios" ? 80 : 62,
+          paddingBottom: Platform.OS === "ios" ? 20 : 8,
           paddingTop: 8,
+          elevation: 8,
+          shadowColor: "#0f172a",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.04,
+          shadowRadius: 12,
         },
-        headerStyle: {
-          backgroundColor: "#2563eb",
-          height: 90,
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "700",
+          letterSpacing: 0.2,
         },
-        headerTintColor: "#ffffff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
-        headerTitle: "",
-        headerRight: () => (
-          <View style={{ flexDirection: "row", alignItems: "center", marginRight: 16, gap: 16 }}>
-            <TouchableOpacity
-              onPress={() => (navigation as any).navigate("Notification")}
-            >
-              <Bell color="#ffffff" size={22} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => (navigation as any).navigate("Placement")}
-            >
-              <Briefcase color="#ffffff" size={22} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => (navigation as any).navigate("Profile")}
-            >
-              <User color="#ffffff" size={22} />
-            </TouchableOpacity>
-          </View>
-        ),
-        // headerShown: false,
+        // Fully custom header rendered as a View (not native header)
+        header: () => <AppHeader navigation={navigation} />,
       })}
     >
       <Tab.Screen
@@ -146,22 +220,12 @@ function TabNavigator() {
   );
 }
 
+// ─── Root Navigator ────────────────────────────────────────────────────────────
 export default function AppNavigation() {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#f8fafc",
-        }}
-      >
-        <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
+    return <FullScreenLoader message="Preparing your portal..." />;
   }
 
   return (
@@ -173,46 +237,54 @@ export default function AppNavigation() {
             <Stack.Screen
               name="WebView"
               component={WebViewScreen}
-              options={({ route }) => ({
+              options={({ route, navigation }) => ({
                 headerShown: true,
-                title: route.params?.title || "Web View",
-                headerStyle: { backgroundColor: "#2563eb" },
-                headerTintColor: "#ffffff",
-                headerTitleStyle: { fontWeight: "bold" },
+                header: () => (
+                  <CustomStackHeader
+                    title={route.params?.title || "Web View"}
+                    navigation={navigation}
+                  />
+                ),
               })}
             />
             <Stack.Screen
               name="Profile"
               component={ProfileScreen}
-              options={{
+              options={({ navigation }) => ({
                 headerShown: true,
-                title: "Student Profile",
-                headerStyle: { backgroundColor: "#2563eb" },
-                headerTintColor: "#ffffff",
-                headerTitleStyle: { fontWeight: "bold" },
-              }}
+                header: () => (
+                  <CustomStackHeader
+                    title="Student Profile"
+                    navigation={navigation}
+                  />
+                ),
+              })}
             />
             <Stack.Screen
               name="Placement"
               component={PlacementScreen}
-              options={{
+              options={({ navigation }) => ({
                 headerShown: true,
-                title: "Placement Hub",
-                headerStyle: { backgroundColor: "#2563eb" },
-                headerTintColor: "#ffffff",
-                headerTitleStyle: { fontWeight: "bold" },
-              }}
+                header: () => (
+                  <CustomStackHeader
+                    title="Placement Hub"
+                    navigation={navigation}
+                  />
+                ),
+              })}
             />
             <Stack.Screen
               name="Notification"
               component={NotificationScreen}
-              options={{
+              options={({ navigation }) => ({
                 headerShown: true,
-                title: "Notifications",
-                headerStyle: { backgroundColor: "#2563eb" },
-                headerTintColor: "#ffffff",
-                headerTitleStyle: { fontWeight: "bold" },
-              }}
+                header: () => (
+                  <CustomStackHeader
+                    title="Notifications"
+                    navigation={navigation}
+                  />
+                ),
+              })}
             />
           </>
         ) : (
@@ -223,3 +295,88 @@ export default function AppNavigation() {
     </View>
   );
 }
+
+// ─── Styles ────────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  headerOuter: {
+    backgroundColor: "#2563eb",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  logoBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+  },
+  logoEmoji: {
+    fontSize: 18,
+    color: "#ffffff",
+  },
+  brandName: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.3,
+  },
+  brandTagline: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.7)",
+    letterSpacing: 0.5,
+    marginTop: 1,
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  headerIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  headerIconBtnLast: {
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderColor: "rgba(255,255,255,0.35)",
+  },
+  stackHeaderOuter: {
+    backgroundColor: "#2563eb",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "rgba(255,255,255,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.25)",
+    marginRight: 12,
+  },
+  stackHeaderTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#ffffff",
+    letterSpacing: 0.3,
+  },
+});

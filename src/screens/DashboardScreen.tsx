@@ -6,20 +6,21 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  ActivityIndicator,
   FlatList,
   Modal,
-  SafeAreaView,
+  RefreshControl,
   Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { DashBoardThunks } from '../feature/dashboard/redux/thunks';
 import { GetAllClassThunks } from '../feature/classes/redux/thunks';
 import { GetNotificationThunks } from '../feature/notification/redux/thunks';
-import { getProfileThunk, updateProfileThunk } from '../feature/profile/reducer/thunk';
+import { getProfileThunk } from '../feature/profile/reducer/thunk';
 import { useAuth } from '../contexts/AuthUseContext';
 import { GetLocalStorage } from '../utils/SecureStorage';
+import FlightLoader from '../components/FlightLoader';
 
 // Icons
 import {
@@ -29,13 +30,12 @@ import {
   User,
   AlertTriangle,
   LogOut,
-  User as UserIcon,
   X,
-  Edit,
   Mail,
   Phone,
   GraduationCap
 } from 'lucide-react-native';
+import { GetOnlineURL } from '../features/services';
 
 export default function DashboardScreen({ navigation }: any) {
   const dispatch = useDispatch<AppDispatch>();
@@ -50,17 +50,26 @@ export default function DashboardScreen({ navigation }: any) {
   // Local UI State
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
 
   const loadData = async () => {
     if (!studentUuid) return;
+    try {
+      await Promise.all([
+        dispatch(DashBoardThunks()),
+        dispatch(GetAllClassThunks('today')),
+        dispatch(GetNotificationThunks()),
+        dispatch(getProfileThunk(studentUuid))
+      ]);
+    } finally {
+      setIsRefreshing(false);
+      setInitialLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
     setIsRefreshing(true);
-    await Promise.all([
-      dispatch(DashBoardThunks()),
-      dispatch(GetAllClassThunks('today')),
-      dispatch(GetNotificationThunks()),
-      dispatch(getProfileThunk(studentUuid))
-    ]);
-    setIsRefreshing(false);
+    loadData();
   };
 
   useEffect(() => {
@@ -70,12 +79,11 @@ export default function DashboardScreen({ navigation }: any) {
   }, [dispatch, studentUuid]);
 
   const handleJoinClass = async (classId: string) => {
-    const token = await GetLocalStorage('t_s_tk');
-    // Open the conference module via Webview
-    const webviewUrl = `http://localhost:3000/confrence?classId=${classId}&token=${token}`; // will load on the device webview
-    // Note: Since localhost points to device, we'll map localhost to the correct backend host IP.
-    const resolvedUrl = webviewUrl.replace('http://localhost:3000', 'http://10.0.2.2:3000');
-    navigation.navigate('WebView', { url: resolvedUrl, title: 'Video Conference' });
+    // const token = await GetLocalStorage('t_s_tk');
+    // const webviewUrl = `http://localhost:3000/confrence?classId=${classId}&token=${token}`;
+    // const resolvedUrl = webviewUrl.replace('http://localhost:3000', 'http://10.0.2.2:3000');
+    const res = await GetOnlineURL(classId)
+    navigation.navigate('WebView', { url: res.joinURL, title: 'Video Conference' });
   };
 
   const formatTime = (timeStr: string) => {
@@ -90,9 +98,33 @@ export default function DashboardScreen({ navigation }: any) {
 
   const progressPercentage = 65;
 
+  // ── Initial loading state ──────────────────────────────────────────────────
+  if (initialLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+        <View style={styles.loaderContainer}>
+          <FlightLoader size="large" message="Loading dashboard..." />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
+            title="Refreshing..."
+            titleColor="#64748b"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header Greeting */}
         <View style={styles.header}>
           <View>
@@ -119,7 +151,7 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
             <View style={styles.courseTitleContainer}>
               <Text style={styles.courseTitle} numberOfLines={1}>
-                {dashboard?.course?.course_name || 'Aviation Operations Management'}
+                {dashboard?.course?.course_name || 'N/A'}
               </Text>
               <Text style={styles.studentId}>ID: {dashboard?.student_id || 'N/A'}</Text>
             </View>
@@ -129,13 +161,13 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.infoBadge}>
               <Image source={require('../assets/fswd.png')} style={styles.badgeIcon as any} />
               <Text style={styles.badgeText} numberOfLines={1}>
-                {dashboard?.batch?.batchName || 'Batch A'}
+                {dashboard?.batch?.batchName || 'N/A'}
               </Text>
             </View>
             <View style={styles.infoBadge}>
               <Image source={require('../assets/clock.png')} style={styles.badgeIcon as any} />
               <Text style={styles.badgeText}>
-                {dashboard?.batch?.classStartTime?.split(' ')[1]?.split('.')[0]?.slice(0, 5) || '09:00'} - {dashboard?.batch?.classEndTime?.split(' ')[1]?.split('.')[0]?.slice(0, 5) || '13:00'}
+                {dashboard?.batch?.classStartTime?.split(' ')[1]?.split('.')[0]?.slice(0, 5) || 'N/A'} - {dashboard?.batch?.classEndTime?.split(' ')[1]?.split('.')[0]?.slice(0, 5) || 'N/A'}
               </Text>
             </View>
           </View>
@@ -329,6 +361,11 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f8fafc',
+  },
+  loaderContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   container: {
     padding: 16,

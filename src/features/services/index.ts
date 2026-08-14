@@ -6,3 +6,8 @@ export const feeService = async (uuid: string): Promise<FeeSummary> => {
     console.log("get fees response :", response)
     return response
 }
+
+export const GetOnlineURL = async (classid: string)=>{
+    const res = await Client.classes.online(classid)
+    return res
+}

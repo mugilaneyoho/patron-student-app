@@ -5,16 +5,20 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  ActivityIndicator
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { GetAttendaceThunks } from '../feature/attendance/redux/thunks';
-import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, HelpCircle } from 'lucide-react-native';
+import { Calendar as CalendarIcon, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import FlightLoader from '../components/FlightLoader';
 
 export default function AttendanceScreen() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
   const dispatch = useDispatch<AppDispatch>();
   const attendanceData = useSelector((state: RootState) => state.attendace.data) as any;
 
@@ -26,22 +30,34 @@ export default function AttendanceScreen() {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
+  const fetchAttendance = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    await dispatch(GetAttendaceThunks(currentDate.toDateString()));
+    setLoading(false);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    dispatch(GetAttendaceThunks(currentDate.toDateString()));
+    fetchAttendance();
   }, [currentDate, dispatch]);
+
+  const handleRefresh = () => {
+    fetchAttendance(true);
+  };
 
   const generateCalendar = (date: Date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
-
     const firstDay = new Date(year, month, 1).getDay();
     const totalDays = new Date(year, month + 1, 0).getDate();
 
     const calendar = [];
-    let week = [];
+    let week: number[] = [];
 
-    // Align start: 0 means Sunday, 1 means Monday...
-    // In original code, startDay is Mon=0, Tue=1, ..., Sun=6
     const startDay = firstDay === 0 ? 6 : firstDay - 1;
 
     for (let i = 0; i < startDay; i++) {
@@ -50,7 +66,6 @@ export default function AttendanceScreen() {
 
     for (let day = 1; day <= totalDays; day++) {
       week.push(day);
-
       if (week.length === 7) {
         calendar.push(week);
         week = [];
@@ -60,7 +75,6 @@ export default function AttendanceScreen() {
     while (week.length < 7) {
       week.push(0);
     }
-
     calendar.push(week);
     return calendar;
   };
@@ -81,17 +95,30 @@ export default function AttendanceScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    if (status === 'PRESENT') return '#10b981'; // emerald 500
-    if (status === 'ABSENT') return '#ef4444'; // rose 500
-    if (status === 'LATE') return '#f59e0b'; // amber 500
-    return '#94a3b8'; // slate 400
+    if (status === 'PRESENT') return '#10b981';
+    if (status === 'ABSENT') return '#ef4444';
+    if (status === 'LATE') return '#f59e0b';
+    return '#94a3b8';
   };
 
   const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
+            title="Refreshing attendance..."
+            titleColor="#64748b"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Attendance Tracker</Text>
           <Text style={styles.subtitle}>Monitor your monthly attendance status and check-ins.</Text>
@@ -110,92 +137,99 @@ export default function AttendanceScreen() {
             </View>
 
             <View style={styles.arrowsContainer}>
-              <TouchableOpacity onPress={handlePrevMonth} style={styles.arrowButton}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.arrowButton} activeOpacity={0.7}>
                 <ChevronLeft size={16} color="#64748b" />
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleNextMonth} style={styles.arrowButton}>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.arrowButton} activeOpacity={0.7}>
                 <ChevronRight size={16} color="#64748b" />
               </TouchableOpacity>
             </View>
           </View>
 
-          {/* Legend */}
-          <View style={styles.legendContainer}>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#10b981' }]} />
-              <Text style={[styles.legendText, { color: '#059669' }]}>Present</Text>
+          {/* Loading overlay on month switch */}
+          {loading ? (
+            <View style={styles.calendarLoader}>
+              <FlightLoader size="small" message="Fetching attendance..." />
             </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#ef4444' }]} />
-              <Text style={[styles.legendText, { color: '#dc2626' }]}>Absent</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#f59e0b' }]} />
-              <Text style={[styles.legendText, { color: '#d97706' }]}>Late</Text>
-            </View>
-            <View style={styles.legendItem}>
-              <View style={[styles.dot, { backgroundColor: '#cbd5e1' }]} />
-              <Text style={[styles.legendText, { color: '#64748b' }]}>No Class</Text>
-            </View>
-          </View>
-
-          {/* Weekday Names Header */}
-          <View style={styles.gridHeader}>
-            {weekDays.map((day) => (
-              <Text key={day} style={styles.gridHeaderCell}>
-                {day}
-              </Text>
-            ))}
-          </View>
-
-          {/* Calendar Grid */}
-          <View style={styles.gridBody}>
-            {calendarRows.map((row, i) => (
-              <View key={i} style={styles.gridRow}>
-                {row.map((day, j) => {
-                  if (day === 0) {
-                    return <View key={`${i}-${j}`} style={styles.gridCellEmpty} />;
-                  }
-
-                  const statusData = getDayStatus(day);
-                  const weekend = isWeekend(day);
-                  const isToday =
-                    new Date().toDateString() ===
-                    new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
-
-                  return (
-                    <View
-                      key={day}
-                      style={[
-                        styles.gridCell,
-                        weekend && styles.gridCellWeekend,
-                        isToday && styles.gridCellToday,
-                        statusData?.status === 'PRESENT' && styles.cellPresent,
-                        statusData?.status === 'ABSENT' && styles.cellAbsent,
-                        statusData?.status === 'LATE' && styles.cellLate
-                      ]}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          isToday && styles.dayTextToday,
-                          weekend && styles.dayTextWeekend
-                        ]}
-                      >
-                        {day}
-                      </Text>
-
-                      {statusData ? (
-                        <View style={[styles.statusDot, { backgroundColor: getStatusColor(statusData.status) }]} />
-                      ) : (
-                        <View style={[styles.statusDot, { backgroundColor: 'transparent' }]} />
-                      )}
-                    </View>
-                  );
-                })}
+          ) : (
+            <>
+              {/* Legend */}
+              <View style={styles.legendContainer}>
+                <View style={styles.legendItem}>
+                  <View style={[styles.dot, { backgroundColor: '#10b981' }]} />
+                  <Text style={[styles.legendText, { color: '#059669' }]}>Present</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.dot, { backgroundColor: '#ef4444' }]} />
+                  <Text style={[styles.legendText, { color: '#dc2626' }]}>Absent</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.dot, { backgroundColor: '#f59e0b' }]} />
+                  <Text style={[styles.legendText, { color: '#d97706' }]}>Late</Text>
+                </View>
+                <View style={styles.legendItem}>
+                  <View style={[styles.dot, { backgroundColor: '#cbd5e1' }]} />
+                  <Text style={[styles.legendText, { color: '#64748b' }]}>No Class</Text>
+                </View>
               </View>
-            ))}
-          </View>
+
+              {/* Weekday Names */}
+              <View style={styles.gridHeader}>
+                {weekDays.map((day) => (
+                  <Text key={day} style={styles.gridHeaderCell}>{day}</Text>
+                ))}
+              </View>
+
+              {/* Calendar Grid */}
+              <View style={styles.gridBody}>
+                {calendarRows.map((row, i) => (
+                  <View key={i} style={styles.gridRow}>
+                    {row.map((day, j) => {
+                      if (day === 0) {
+                        return <View key={`${i}-${j}`} style={styles.gridCellEmpty} />;
+                      }
+
+                      const statusData = getDayStatus(day);
+                      const weekend = isWeekend(day);
+                      const isToday =
+                        new Date().toDateString() ===
+                        new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
+
+                      return (
+                        <View
+                          key={day}
+                          style={[
+                            styles.gridCell,
+                            weekend && styles.gridCellWeekend,
+                            isToday && styles.gridCellToday,
+                            statusData?.status === 'PRESENT' && styles.cellPresent,
+                            statusData?.status === 'ABSENT' && styles.cellAbsent,
+                            statusData?.status === 'LATE' && styles.cellLate,
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.dayText,
+                              isToday && styles.dayTextToday,
+                              weekend && styles.dayTextWeekend,
+                            ]}
+                          >
+                            {day}
+                          </Text>
+
+                          {statusData ? (
+                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(statusData.status) }]} />
+                          ) : (
+                            <View style={[styles.statusDot, { backgroundColor: 'transparent' }]} />
+                          )}
+                        </View>
+                      );
+                    })}
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -238,6 +272,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 10,
     elevation: 2,
+  },
+  calendarLoader: {
+    paddingVertical: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   navRow: {
     flexDirection: 'row',

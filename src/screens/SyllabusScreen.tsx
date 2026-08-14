@@ -1,35 +1,70 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Image,
-  SafeAreaView,
-  ActivityIndicator,
-  Alert
+  Alert,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { selectNote } from '../feature/notes/reducer/slector';
 import { getNoteByIdThunk } from '../feature/notes/reducer/thunk';
 import { Calendar, Download, Book } from 'lucide-react-native';
+import FlightLoader from '../components/FlightLoader';
 
 export default function SyllabusScreen() {
   const dispatch = useDispatch<any>();
   const notesdata = useSelector(selectNote) as any[];
 
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchNotes = async (isRefresh = false) => {
+    if (isRefresh) setRefreshing(true);
+    await dispatch(getNoteByIdThunk());
+    setLoading(false);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
-    dispatch(getNoteByIdThunk());
+    fetchNotes();
   }, [dispatch]);
+
+  const handleRefresh = () => {
+    fetchNotes(true);
+  };
 
   const handleDownload = (materialName: string) => {
     Alert.alert('Download Started', `Downloading: ${materialName}`);
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]} edges={['bottom']}>
+        <FlightLoader size="large" message="Loading syllabus..." />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
+            title="Refreshing materials..."
+            titleColor="#64748b"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Syllabus & Materials</Text>
           <Text style={styles.subtitle}>Access your topics, syllabi, and downloadable resources.</Text>
@@ -74,6 +109,7 @@ export default function SyllabusScreen() {
                   <TouchableOpacity
                     style={styles.downloadButton}
                     onPress={() => handleDownload(item?.materialType || 'Topic Handout.pdf')}
+                    activeOpacity={0.8}
                   >
                     <Download size={16} color="#2563eb" />
                   </TouchableOpacity>

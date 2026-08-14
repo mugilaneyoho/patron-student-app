@@ -4,7 +4,8 @@ export const HttpEndPoints = {
   },
   classes: {
     get: '/training/classes/student/:classtype',
-    getZoomMeeting: (classId: string) => `/openvidu/zoom/meeting/${classId}`
+    getZoomMeeting: (classId: string) => `/openvidu/zoom/meeting/${classId}`,
+    online: '/openvidu/zoom/meeting/:classid'
   },
   attendance: {
     get: '/training/attendance/student'

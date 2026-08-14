@@ -5,10 +5,9 @@ import {
   Text,
   FlatList,
   TouchableOpacity,
-  ActivityIndicator,
   RefreshControl,
-  SafeAreaView
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import { GetNotificationThunks } from '../feature/notification/redux/thunks';
@@ -119,14 +118,11 @@ export default function NotificationScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerTitle}>Notifications</Text>
-          <Text style={styles.headerSubtitle}>
-            Stay updated with your training, classes, and placements
-          </Text>
-        </View>
+        <Text style={styles.headerSubtitle}>
+          Stay updated with your training, classes, and placements
+        </Text>
       </View>
 
       {localNotifications.length > 0 && (

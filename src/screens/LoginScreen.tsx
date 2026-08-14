@@ -45,13 +45,18 @@ export default function LoginScreen() {
     try {
       const res = await LoginService({ email, password });
       console.log("change pass ", res);
-      if (res?.changepass) {
+      if (res === null) {
+        Alert.alert(
+          "Network Error",
+          "Unable to connect to the server. Please check your internet connection or backend server URL."
+        );
+      } else if (res?.changepass) {
         await SetLocalStorage("temp-tkn", res.token);
         setChangePass(true);
       } else if (res?.success) {
         await login(res.data);
       } else {
-        Alert.alert("Login Failed", "Incorrect email or password.");
+        Alert.alert("Login Failed", res?.message || "Incorrect email or password.");
       }
     } catch (err) {
       console.error(err);

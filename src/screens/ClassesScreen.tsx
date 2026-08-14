@@ -5,59 +5,62 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
+  Alert,
+  RefreshControl,
+  Linking,
   ActivityIndicator,
-  Alert
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
-import { GetAllClassThunks } from '../feature/classes/redux/thunks';
-import { GetLocalStorage } from '../utils/SecureStorage';
+import { GetAllClassThunks, GetZoomMeetingThunk } from '../feature/classes/redux/thunks';
 import { Calendar, Clock, MapPin, User, Video, FileText } from 'lucide-react-native';
-import { Linking } from 'react-native';
-import { GetZoomMeetingThunk } from '../feature/classes/redux/thunks';
+import FlightLoader from '../components/FlightLoader';
 
 export default function ClassesScreen({ navigation }: any) {
   const [activeTab, setActiveTab] = useState<'Today' | 'Upcoming' | 'Completed'>('Today');
   const [loading, setLoading] = useState(false);
-  
+  const [refreshing, setRefreshing] = useState(false);
+
   const dispatch = useDispatch<AppDispatch>();
   const classes = useSelector((state: RootState) => state.classes.data) as any[];
   const joiningClassId = useSelector((state: RootState) => state.classes.zoomMeeting?.loadingClassId);
-  console.log("classes :", classes);
+
+  const fetchClasses = async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+    await dispatch(GetAllClassThunks(activeTab));
+    setLoading(false);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    const fetchClasses = async () => {
-      setLoading(true);
-      console.log("Fetching:", activeTab);
-      await dispatch(GetAllClassThunks(activeTab));
-       console.log("Classes on useeffect:", classes);
-       console.log("Active Tab:", activeTab);
-      setLoading(false);
-    };
     fetchClasses();
-  }, [activeTab, dispatch]); 
+  }, [activeTab, dispatch]);
+
+  const handleRefresh = () => {
+    fetchClasses(true);
+  };
 
   const handleJoinClass = async (classId: string) => {
     try {
-      console.log("handleJoinClass called with:", classId);
       const res = await dispatch(GetZoomMeetingThunk(classId)).unwrap();
-      console.log("handleJoinClass unwrap res:", JSON.stringify(res));
-      
       const urlToOpen = res?.startURL || res?.joinUrl || res?.meetingUrl || res?.data?.startURL || res?.data?.joinUrl || res?.data?.meetingUrl || res?.data;
-      
+
       if (urlToOpen && typeof urlToOpen === 'string' && urlToOpen.startsWith('http')) {
         try {
           await Linking.openURL(urlToOpen);
-        } catch (error) {
-          Alert.alert("Error", "Unable to open meeting link");
+        } catch {
+          Alert.alert('Error', 'Unable to open meeting link');
         }
       } else {
-        Alert.alert("Error", `Received invalid link format. Response: ${JSON.stringify(res)}`);
+        Alert.alert('Error', `Received invalid link format. Response: ${JSON.stringify(res)}`);
       }
     } catch (error) {
-      console.error("handleJoinClass error:", error);
-      Alert.alert("Error", typeof error === 'string' ? error : "Unable to fetch meeting link, please try again");
+      Alert.alert('Error', typeof error === 'string' ? error : 'Unable to fetch meeting link, please try again');
     }
   };
 
@@ -81,7 +84,8 @@ export default function ClassesScreen({ navigation }: any) {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      {/* Tab Switcher */}
       <View style={styles.tabContainer}>
         {(['Today', 'Upcoming', 'Completed'] as const).map((tab) => {
           const isActive = activeTab === tab;
@@ -90,6 +94,7 @@ export default function ClassesScreen({ navigation }: any) {
               key={tab}
               style={[styles.tabButton, isActive && styles.tabButtonActive]}
               onPress={() => setActiveTab(tab)}
+              activeOpacity={0.8}
             >
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab}</Text>
             </TouchableOpacity>
@@ -97,12 +102,26 @@ export default function ClassesScreen({ navigation }: any) {
         })}
       </View>
 
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#2563eb" />
+          <FlightLoader size="medium" message="Loading classes..." />
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={['#2563eb']}
+              tintColor="#2563eb"
+              title="Refreshing classes..."
+              titleColor="#64748b"
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        >
           {classes && classes.length > 0 ? (
             classes.map((item) => (
               <View key={item.uuid || item.id} style={styles.classCard}>
@@ -158,9 +177,10 @@ export default function ClassesScreen({ navigation }: any) {
 
                 {activeTab === 'Today' && item.class_mode === 'online' && (
                   <TouchableOpacity
-                    style={styles.actionButton}
+                    style={[styles.actionButton, joiningClassId === (item.uuid || item.id) && styles.actionButtonDisabled]}
                     onPress={() => handleJoinClass(item.uuid || item.id)}
                     disabled={joiningClassId === (item.uuid || item.id)}
+                    activeOpacity={0.85}
                   >
                     {joiningClassId === (item.uuid || item.id) ? (
                       <ActivityIndicator size="small" color="#ffffff" />
@@ -340,6 +360,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionButtonDisabled: {
+    backgroundColor: '#93c5fd',
   },
   actionButtonText: {
     color: '#ffffff',

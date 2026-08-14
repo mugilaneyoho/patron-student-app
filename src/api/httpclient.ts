@@ -2,13 +2,16 @@ import axios from 'axios';
 import { Platform } from 'react-native';
 import { ClearLocalStorage, GetLocalStorage } from '../utils/SecureStorage';
 
-// const baseURL = Platform.OS === 'android' ? 'http://192.168.1.24:3000' : 'http://localhost:3000';
-const baseURL = Platform.OS === 'android' ? 'https://patron.cloudflaredb.xyz' : 'https://patron.cloudflaredb.xyz';
-
+// Base URL setup:
+// 1. Production / Cloudflare Tunnel: 'https://patron.service.cloudflaredb.xyz'
+// 2. Local Android Emulator: 'http://10.0.2.2:3000' (or your backend port)
+// 3. Local Physical Device (same Wi-Fi): 'http://<YOUR_COMPUTER_IP>:3000' (e.g., 'http://10.60.124.31:3000')
+const DEFAULT_URL = 'https://patron.service.cloudflaredb.xyz';
+const baseURL = DEFAULT_URL;
 
 const Axios = axios.create({
   baseURL,
-  timeout: 500000,
+  timeout: 50000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -30,9 +33,11 @@ Axios.interceptors.response.use(
       await ClearLocalStorage();
       return error?.response;
     } else if (error.response && (error.response.status === 400 || error.response.status === 403)) {
+      console.log(`HTTP ${error.response.status} Response:`, error.response.data);
       return error?.response;
     } else {
-      return Promise.reject(error);  // ← FIXED
+      console.log(`❌ Network/Server connection failure targeting base URL [${baseURL}]:`, error.message || error);
+      return Promise.reject(error);
     }
   }
 );
@@ -44,7 +49,7 @@ class HttpClient {
       console.log(`http data get: ${url}`, response.data);
       return response.data;
     } catch (error: any) {
-      console.log(`❌ http error [GET ${url}]:`, error.message);  // ← shows real error
+      console.log(`❌ http error [GET ${baseURL}${url}]:`, error.message, error.code ? `(${error.code})` : '');
       return null;
     }
   }
@@ -54,7 +59,7 @@ class HttpClient {
       const response = await Axios.post(url, data, { params });
       return response.data;
     } catch (error: any) {
-      console.log(`❌ http error [POST ${url}]:`, error.message);
+      console.log(`❌ http error [POST ${baseURL}${url}]:`, error.message, error.code ? `(${error.code})` : '');
       return null;
     }
   }
@@ -64,17 +69,17 @@ class HttpClient {
       const response = await Axios.put(url, data);
       return response.data;
     } catch (error: any) {
-      console.log(`❌ http error [PUT ${url}]:`, error.message);
+      console.log(`❌ http error [PUT ${baseURL}${url}]:`, error.message, error.code ? `(${error.code})` : '');
       return null;
     }
   }
 
-  async patch(url: string, data?: any) {   // ✅ ADD THIS
+  async patch(url: string, data?: any) {
     try {
       const response = await Axios.patch(url, data);
       return response.data;
     } catch (error: any) {
-      console.log(`❌ http error [PATCH ${url}]:`, error.message);
+      console.log(`❌ http error [PATCH ${baseURL}${url}]:`, error.message, error.code ? `(${error.code})` : '');
       return null;
     }
   }
@@ -84,7 +89,7 @@ class HttpClient {
       const response = await Axios.delete(url, { params });
       return response.data;
     } catch (error: any) {
-      console.log(`❌ http error [DELETE ${url}]:`, error.message);
+      console.log(`❌ http error [DELETE ${baseURL}${url}]:`, error.message, error.code ? `(${error.code})` : '');
       return null;
     }
   }

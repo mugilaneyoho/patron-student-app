@@ -5,16 +5,17 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  ActivityIndicator,
   Modal,
-  Alert
+  Alert,
+  RefreshControl,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { feeService } from '../features/services/index';
 import client from '../api/index';
 import { IndianRupee, CreditCard, Smartphone, Building2, CheckCircle2, X } from 'lucide-react-native';
 import { useAuth } from '../contexts/AuthUseContext';
 import type { Payment } from '../types/feeInterface';
+import FlightLoader from '../components/FlightLoader';
 
 export default function FeesScreen() {
   const { studentUuid } = useAuth();
@@ -25,11 +26,15 @@ export default function FeesScreen() {
   const [paymentHistory, setPaymentHistory] = useState<Payment[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [checkoutVisible, setCheckoutVisible] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
 
-  const fetchFeesData = async () => {
+  const fetchFeesData = async (isRefresh = false) => {
     if (!studentUuid) return;
+    if (isRefresh) {
+      setRefreshing(true);
+    }
     try {
       const data = await feeService(studentUuid);
       if (data) {
@@ -44,6 +49,7 @@ export default function FeesScreen() {
       Alert.alert('Load Error', 'Unable to retrieve fees details.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -53,17 +59,17 @@ export default function FeesScreen() {
     }
   }, [studentUuid]);
 
+  const handleRefresh = () => {
+    fetchFeesData(true);
+  };
+
   const handleSimulatePayment = async (method: string) => {
     setPaymentProcessing(true);
     try {
-      // 1. Initiate order creation from backend
       const order = await client.payment.create({ amount: 500 });
-      console.log('Mobile simulated order created:', order);
 
-      // 2. Simulate network delay for authentication/security check
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      // 3. Mock verification payload matching Razorpay signature verification
       const mockResponse = {
         razorpay_order_id: order.id,
         razorpay_payment_id: `pay_${Math.random().toString(36).substring(2, 11)}`,
@@ -71,15 +77,12 @@ export default function FeesScreen() {
         success: true
       };
 
-      // 4. Send verify request to backend
       const verifyRes = await client.payment.verify(mockResponse);
 
       if (verifyRes.success) {
-        // Update local amounts
         setPaidAmount((prev) => prev + pendingAmount);
         setPendingAmount(0);
-        
-        // Append receipt to payment records list
+
         const newRecord: Payment = {
           amount: verifyRes.data?.amount || pendingAmount,
           date: verifyRes.data?.createdAt || new Date().toISOString(),
@@ -103,16 +106,28 @@ export default function FeesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading balance sheet...</Text>
-      </View>
+      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]} edges={['bottom']}>
+        <FlightLoader size="large" message="Loading balance sheet..." />
+      </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container}>
+    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={['#2563eb']}
+            tintColor="#2563eb"
+            title="Refreshing fees..."
+            titleColor="#64748b"
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Fees Management</Text>
           <Text style={styles.subtitle}>View your tuition logs, outstanding dues, and ledger receipts.</Text>
@@ -208,15 +223,11 @@ export default function FeesScreen() {
 
             {paymentProcessing ? (
               <View style={styles.processingContainer}>
-                <ActivityIndicator size="large" color="#2563eb" />
-                <Text style={styles.processingText}>Processing transaction securely...</Text>
+                <FlightLoader size="medium" message="Processing transaction securely..." />
               </View>
             ) : (
               <View style={styles.methodsList}>
-                <TouchableOpacity
-                  style={styles.methodButton}
-                  onPress={() => handleSimulatePayment('card')}
-                >
+                <TouchableOpacity style={styles.methodButton} onPress={() => handleSimulatePayment('card')}>
                   <View style={[styles.methodIconBg, { backgroundColor: '#e0e7ff' }]}>
                     <CreditCard size={20} color="#4f46e5" />
                   </View>
@@ -226,10 +237,7 @@ export default function FeesScreen() {
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.methodButton}
-                  onPress={() => handleSimulatePayment('upi')}
-                >
+                <TouchableOpacity style={styles.methodButton} onPress={() => handleSimulatePayment('upi')}>
                   <View style={[styles.methodIconBg, { backgroundColor: '#ccfbf1' }]}>
                     <Smartphone size={20} color="#0d9488" />
                   </View>
@@ -239,10 +247,7 @@ export default function FeesScreen() {
                   </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={styles.methodButton}
-                  onPress={() => handleSimulatePayment('bank')}
-                >
+                <TouchableOpacity style={styles.methodButton} onPress={() => handleSimulatePayment('bank')}>
                   <View style={[styles.methodIconBg, { backgroundColor: '#dcfce7' }]}>
                     <Building2 size={20} color="#16a34a" />
                   </View>
@@ -264,18 +269,6 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f8fafc',
-  },
-  centerContainer: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-  },
-  loadingText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '600',
-    marginTop: 10,
   },
   container: {
     padding: 16,
@@ -501,12 +494,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 40,
-  },
-  processingText: {
-    fontSize: 12,
-    color: '#64748b',
-    fontWeight: '700',
-    marginTop: 16,
   },
   methodsList: {
     gap: 12,

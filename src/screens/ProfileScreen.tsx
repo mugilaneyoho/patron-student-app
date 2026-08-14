@@ -7,11 +7,12 @@ import {
   Image,
   TouchableOpacity,
   TextInput,
-  ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import {
@@ -19,6 +20,7 @@ import {
   updateProfileThunk,
 } from "../feature/profile/reducer/thunk";
 import { useAuth } from "../contexts/AuthUseContext";
+import FlightLoader from "../components/FlightLoader";
 import {
   User,
   Mail,
@@ -123,18 +125,18 @@ export default function ProfileScreen({ navigation }: any) {
 
   if (!profile) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loadingText}>Loading Profile...</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer} edges={['bottom']}>
+        <FlightLoader size="large" message="Loading Profile..." />
+      </SafeAreaView>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={{ flex: 1, backgroundColor: "#f8fafc" }}
-    >
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }} edges={['bottom']}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={{ flex: 1, backgroundColor: "#f8fafc" }}
+      >
       <ScrollView contentContainerStyle={styles.container}>
         {/* Header/Hero Section */}
         <View style={styles.heroSection}>
@@ -336,7 +338,8 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.signOutText}>Sign Out Account</Text>
         </TouchableOpacity>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -346,12 +349,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#f8fafc",
-  },
-  loadingText: {
-    marginTop: 10,
-    color: "#64748b",
-    fontSize: 14,
-    fontWeight: "600",
   },
   container: {
     padding: 16,

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="true">https://patron.service.cloudflaredb.xyz</domain>
+        <trust-anchors>
+            <!-- Trust user/self-signed certificates installed on the device/app -->
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+</network-security-config>
